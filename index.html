@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThinkLens — 5-Mode Problem Solver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --muted: #7a7f92;
+    --faint: #3a3f52;
+
+    --logical:   #4e9eff;
+    --analytical:#3ecfb0;
+    --critical:  #e07b54;
+    --design:    #b87cff;
+    --heuristic: #f0c542;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lora', Georgia, serif;
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  /* ── header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+
+  .brand span {
+    background: linear-gradient(90deg, var(--logical), var(--design));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .key-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .key-hint a {
+    color: var(--logical);
+    text-decoration: none;
+  }
+
+  .key-hint a:hover { text-decoration: underline; }
+
+  /* ── main layout ── */
+  main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 0;
+  }
+
+  /* ── section labels ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── inputs ── */
+  .field { margin-bottom: 20px; }
+
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  input[type="text"], input[type="password"], textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus,
+  textarea:focus {
+    border-color: var(--logical);
+    box-shadow: 0 0 0 3px rgba(78,158,255,0.12);
+  }
+
+  textarea.problem {
+    min-height: 90px;
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .key-wrap {
+    position: relative;
+  }
+
+  .key-wrap input { padding-right: 38px; }
+
+  .eye-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .eye-btn:hover { color: var(--text); }
+
+  /* ── action button ── */
+  .btn-solve {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #2356a8, #1a3d7a);
+    border: 1px solid rgba(78,158,255,0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-solve:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2c65c2, #1f4a95);
+    border-color: rgba(78,158,255,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-solve:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+
+  .divider-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── thinking cards ── */
+  .cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .card.has-content { border-color: var(--border2); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    flex: 1;
+  }
+
+  .card-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+    min-height: 80px;
+  }
+
+  .card-output {
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    min-height: 72px;
+  }
+
+  .placeholder-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--faint);
+    font-style: italic;
+  }
+
+  /* ── per-card theming ── */
+  .card-logical   .icon { background: rgba(78,158,255,0.12); color: var(--logical); }
+  .card-logical   .card-title { color: var(--logical); }
+  .card-logical   .card-badge { background: rgba(78,158,255,0.1); color: var(--logical); }
+  .card-logical.has-content { border-left: 3px solid var(--logical); }
+
+  .card-analytical .icon { background: rgba(62,207,176,0.12); color: var(--analytical); }
+  .card-analytical .card-title { color: var(--analytical); }
+  .card-analytical .card-badge { background: rgba(62,207,176,0.1); color: var(--analytical); }
+  .card-analytical.has-content { border-left: 3px solid var(--analytical); }
+
+  .card-critical  .icon { background: rgba(224,123,84,0.12); color: var(--critical); }
+  .card-critical  .card-title { color: var(--critical); }
+  .card-critical  .card-badge { background: rgba(224,123,84,0.1); color: var(--critical); }
+  .card-critical.has-content { border-left: 3px solid var(--critical); }
+
+  .card-design    .icon { background: rgba(184,124,255,0.12); color: var(--design); }
+  .card-design    .card-title { color: var(--design); }
+  .card-design    .card-badge { background: rgba(184,124,255,0.1); color: var(--design); }
+  .card-design.has-content { border-left: 3px solid var(--design); }
+
+  .card-heuristic .icon { background: rgba(240,197,66,0.12); color: var(--heuristic); }
+  .card-heuristic .card-title { color: var(--heuristic); }
+  .card-heuristic .card-badge { background: rgba(240,197,66,0.1); color: var(--heuristic); }
+  .card-heuristic.has-content { border-left: 3px solid var(--heuristic); }
+
+  /* ── status bar ── */
+  .status {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 18px;
+    letter-spacing: 0.04em;
+  }
+
+  .status.error { color: #f07070; }
+  .status.ok    { color: var(--analytical); }
+  .status.info  { color: var(--muted); }
+
+  /* ── shimmer loading ── */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--faint) 50%, var(--surface2) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+    height: 14px;
+    margin-bottom: 8px;
+  }
+
+  .shimmer:last-child { width: 60%; }
+
+  /* ── footer ── */
+  footer {
+    text-align: center;
+    margin-top: 56px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--faint);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Shraddha<span>Lens</span></div>
+  <div class="tagline">Using AI in everyday life.</div>
+</header>
+
+<main>
+
+  <!-- API key -->
+  <div class="field">
+    <div class="section-label"></div>
+    <div class="key-wrap">
+      <input type="password" id="apiKey" placeholder="" autocomplete="off" spellcheck="false">
+      <button class="eye-btn" onclick="toggleKey()" title="Toggle visibility">
+        <svg id="eye-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="key-hint">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Paste your AI Key.
+    </div>
+  </div>
+
+  <!-- Problem -->
+  <div class="field">
+    <div class="section-label">Problem Statement</div>
+    <textarea class="problem" id="problem" placeholder="Describe the problem you want to solve in detail…" rows="4"></textarea>
+  </div>
+
+  <!-- Solve button -->
+  <button class="btn-solve" id="solveBtn" onclick="solve()">
+    <div class="spinner" id="spinner"></div>
+    <span id="btnLabel">Analyse with 5 Thinking Modes</span>
+  </button>
+
+  <!-- Status -->
+  <div class="status info" id="status"></div>
+
+  <!-- Divider -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">Solutions by thinking mode</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- Output cards -->
+  <div class="cards-grid">
+
+    <div class="card card-logical" id="card-logical">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h6"/><rect x="16" y="12" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <div class="card-title">Logical Thinking</div>
+        <div class="card-badge">Deductive · Rule-based</div>
+      </div>
+      <div class="card-body" id="body-logical">
+        <div class="placeholder-text">Step-by-step reasoning using rules and formal logic…</div>
+      </div>
+    </div>
+
+    <div class="card card-analytical" id="card-analytical">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18"/><polyline points="7 16 11 10 15 13 19 7"/></svg>
+        </div>
+        <div class="card-title">Analytical Thinking</div>
+        <div class="card-badge">Data · Pattern · Root cause</div>
+      </div>
+      <div class="card-body" id="body-analytical">
+        <div class="placeholder-text">Breaking down the problem into measurable parts…</div>
+      </div>
+    </div>
+
+    <div class="card card-critical" id="card-critical">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="card-title">Critical Thinking</div>
+        <div class="card-badge">Evaluate · Challenge · Question</div>
+      </div>
+      <div class="card-body" id="body-critical">
+        <div class="placeholder-text">Questioning assumptions and evaluating evidence…</div>
+      </div>
+    </div>
+
+    <div class="card card-design" id="card-design">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="13" cy="6" r="3"/><path d="M3 19c0-4 4-7 9-7"/><path d="M16 14l4 4-4 4"/></svg>
+        </div>
+        <div class="card-title">Design Thinking</div>
+        <div class="card-badge">Empathise · Ideate · Prototype</div>
+      </div>
+      <div class="card-body" id="body-design">
+        <div class="placeholder-text">Human-centred, creative and iterative solutions…</div>
+      </div>
+    </div>
+
+    <div class="card card-heuristic" id="card-heuristic">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707M6 17l.344-.343"/><path d="M12 6a6 6 0 0 1 0 12"/></svg>
+        </div>
+        <div class="card-title">Heuristic Thinking</div>
+        <div class="card-badge">Intuition · Rules of thumb</div>
+      </div>
+      <div class="card-body" id="body-heuristic">
+        <div class="placeholder-text">Quick mental shortcuts and experience-based insights…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Designed by Prof. Rahul M. Samant | HOD-IT, NBNSTIC.</footer>
+</main>
+
+<script>
+const THINKING_MODES = [
+  {
+    key: 'logical',
+    label: 'Logical Thinking',
+    instruction: 'Apply LOGICAL THINKING — use formal deductive and inductive reasoning, identify cause-effect chains, and suggest a structured, rules-based solution. Respond in 2-3 sentences only.'
+  },
+  {
+    key: 'analytical',
+    label: 'Analytical Thinking',
+    instruction: 'Apply ANALYTICAL THINKING — break the problem into its component parts, identify patterns or root causes using data-driven reasoning, and propose a measured solution. Respond in 2-3 sentences only.'
+  },
+  {
+    key: 'critical',
+    label: 'Critical Thinking',
+    instruction: 'Apply CRITICAL THINKING — question assumptions, identify potential flaws or biases in the problem framing, and suggest what should be reconsidered or evaluated more carefully. Respond in 2-3 sentences only.'
+  },
+  {
+    key: 'design',
+    label: 'Design Thinking',
+    instruction: 'Apply DESIGN THINKING — focus on the human experience, empathise with stakeholders, and propose an empathetic, creative, iterative solution centred on user needs. Respond in 2-3 sentences only.'
+  },
+  {
+    key: 'heuristic',
+    label: 'Heuristic Thinking',
+    instruction: 'Apply HEURISTIC THINKING — use mental shortcuts, rules of thumb, analogies from past experience, and intuitive best guesses to suggest a practical, quick-win solution. Respond in 2-3 sentences only.'
+  }
+];
+
+function setStatus(msg, type = 'info') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+
+function toggleKey() {
+  const inp = document.getElementById('apiKey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function showShimmer(bodyId) {
+  const el = document.getElementById(bodyId);
+  el.innerHTML = '<div class="shimmer"></div><div class="shimmer"></div>';
+}
+
+function showResult(bodyId, cardId, text) {
+  const body = document.getElementById(bodyId);
+  const card = document.getElementById(cardId);
+  body.innerHTML = '';
+  const ta = document.createElement('textarea');
+  ta.className = 'card-output';
+  ta.readOnly = true;
+  ta.value = text;
+  ta.rows = 4;
+  body.appendChild(ta);
+  card.classList.add('has-content');
+  autoResize(ta);
+}
+
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+function resetCards() {
+  const placeholders = [
+    ['body-logical',   'Step-by-step reasoning using rules and formal logic…'],
+    ['body-analytical','Breaking down the problem into measurable parts…'],
+    ['body-critical',  'Questioning assumptions and evaluating evidence…'],
+    ['body-design',    'Human-centred, creative and iterative solutions…'],
+    ['body-heuristic', 'Quick mental shortcuts and experience-based insights…'],
+  ];
+  placeholders.forEach(([id, ph]) => {
+    document.getElementById(id).innerHTML = `<div class="placeholder-text">${ph}</div>`;
+  });
+  THINKING_MODES.forEach(m => {
+    document.getElementById('card-' + m.key).classList.remove('has-content');
+  });
+}
+
+async function queryGrok(apiKey, problem, instruction) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 200,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a multi-modal problem-solving assistant. You will be given a problem and a specific thinking mode instruction. Follow the instruction exactly. Be concise — answer in 2-3 sentences maximum. No bullet points, no headers.'
+        },
+        {
+          role: 'user',
+          content: `Problem: ${problem}\n\n${instruction}`
+        }
+      ]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() || 'No response received.';
+}
+
+async function solve() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const problem = document.getElementById('problem').value.trim();
+
+  if (!apiKey) { setStatus('Please enter your Grok API key.', 'error'); return; }
+  if (!problem) { setStatus('Please describe a problem to solve.', 'error'); return; }
+
+  const btn = document.getElementById('solveBtn');
+  const spinner = document.getElementById('spinner');
+  const lbl = document.getElementById('btnLabel');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  lbl.textContent = 'Thinking…';
+  resetCards();
+  setStatus('');
+
+  let errors = 0;
+
+  for (let i = 0; i < THINKING_MODES.length; i++) {
+    const mode = THINKING_MODES[i];
+    setStatus(`[${i+1}/5] Applying ${mode.label}…`, 'info');
+    showShimmer('body-' + mode.key);
+
+    try {
+      const answer = await queryGrok(apiKey, problem, mode.instruction);
+      showResult('body-' + mode.key, 'card-' + mode.key, answer);
+    } catch (e) {
+      document.getElementById('body-' + mode.key).innerHTML =
+        `<div class="placeholder-text" style="color:#f07070">Error: ${e.message}</div>`;
+      errors++;
+    }
+  }
+
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  lbl.textContent = 'Analyse with 5 Thinking Modes';
+
+  if (errors === 0) {
+    setStatus('All 5 analyses complete.', 'ok');
+  } else if (errors === THINKING_MODES.length) {
+    setStatus('All requests failed. Check your API key and try again.', 'error');
+  } else {
+    setStatus(`Done — ${errors} mode(s) encountered errors.`, 'error');
+  }
+}
+
+document.getElementById('problem').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) solve();
+});
+</script>
+</body>
+</html>
