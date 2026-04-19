@@ -374,7 +374,7 @@
 
 <header>
   <div class="brand">Shraddha<span>Lens</span></div>
-  <div class="tagline">Using AI in everyday life.</div>
+  <div class="tagline">Using AI in evertday decision making.</div>
 </header>
 
 <main>
@@ -383,7 +383,7 @@
   <div class="field">
     <div class="section-label"></div>
     <div class="key-wrap">
-      <input type="password" id="apiKey" placeholder="" autocomplete="off" spellcheck="false">
+      <input type="password" id="apiKey" placeholder="Input AI key..." autocomplete="off" spellcheck="false" oninput="saveKey()">
       <button class="eye-btn" onclick="toggleKey()" title="Toggle visibility">
         <svg id="eye-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -392,7 +392,9 @@
     </div>
     <div class="key-hint">
       <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Paste your AI Key.
+      Enter AI key. 
+      <span id="savedBadge" style="display:none;margin-left:6px;background:rgba(62,207,176,0.12);color:var(--analytical);font-size:9px;padding:2px 7px;border-radius:20px;letter-spacing:0.08em;">SAVED</span>
+      <button id="clearKeyBtn" onclick="clearKey()" style="display:none;margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:0;" title="Remove saved key">clear</button>
     </div>
   </div>
 
@@ -526,10 +528,44 @@ function setStatus(msg, type = 'info') {
   el.className = 'status ' + type;
 }
 
+const STORAGE_KEY = 'thinklens_groq_key';
+
+function loadKey() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    showSavedState(true);
+  }
+}
+
+function saveKey() {
+  const val = document.getElementById('apiKey').value.trim();
+  if (val) {
+    localStorage.setItem(STORAGE_KEY, val);
+    showSavedState(true);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+    showSavedState(false);
+  }
+}
+
+function clearKey() {
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('apiKey').value = '';
+  showSavedState(false);
+}
+
+function showSavedState(saved) {
+  document.getElementById('savedBadge').style.display = saved ? 'inline-block' : 'none';
+  document.getElementById('clearKeyBtn').style.display = saved ? 'inline-block' : 'none';
+}
+
 function toggleKey() {
   const inp = document.getElementById('apiKey');
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
+
+loadKey();
 
 function showShimmer(bodyId) {
   const el = document.getElementById(bodyId);
@@ -607,7 +643,7 @@ async function solve() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const problem = document.getElementById('problem').value.trim();
 
-  if (!apiKey) { setStatus('Please enter your Grok API key.', 'error'); return; }
+  if (!apiKey) { setStatus('Please enter your Groq API key (starts with gsk_).', 'error'); return; }
   if (!problem) { setStatus('Please describe a problem to solve.', 'error'); return; }
 
   const btn = document.getElementById('solveBtn');
